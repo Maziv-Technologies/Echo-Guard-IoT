@@ -265,7 +265,7 @@ export default function EchoGuardSimulation() {
   };
 
   // SVG topology layout
-  const svgW = 820, svgH = 160;
+  const svgW = 900, svgH = 185;
   const pipeY = 80;
   const nodeY = 120;
 
@@ -356,7 +356,7 @@ export default function EchoGuardSimulation() {
                 )}
                 <text x={n.x + 20} y={nodeY + 18} textAnchor="middle"
                   fontSize={10} fontWeight={500} fill={col}>{n.id}</text>
-                <text x={n.x + 20} y={nodeY + 36} textAnchor="middle"
+                <text x={n.x + 20} y={nodeY + 46} textAnchor="middle"
                   fontSize={9} fill="var(--color-text-tertiary)">{n.label}</text>
               </g>
             );
@@ -369,7 +369,7 @@ export default function EchoGuardSimulation() {
               stroke={gwActive ? "#378ADD" : "#B4B2A9"} strokeWidth={gwActive ? 2 : 1} />
             <text x={GATEWAY.x + 23} y={nodeY + 16} textAnchor="middle"
               fontSize={9} fontWeight={500} fill={gwActive ? "#185FA5" : "#888780"}>GW</text>
-            <text x={GATEWAY.x + 23} y={nodeY + 36} textAnchor="middle"
+            <text x={GATEWAY.x + 23} y={nodeY + 46} textAnchor="middle"
               fontSize={9} fill="var(--color-text-tertiary)">Gateway</text>
             {gwActive && (
               <text x={GATEWAY.x + 23} y={nodeY - 12} textAnchor="middle"
