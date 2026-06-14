@@ -1,11 +1,13 @@
 import { useState } from "react";
-import EchoGuardDiagram from "./components/EchoGuardDiagram";
+import EchoGuardDiagram    from "./components/EchoGuardDiagram";
 import EchoGuardSimulation from "./components/EchoGuardSimulation";
+import EchoGuardMap        from "./components/EchoGuardMap";
 import "./App.css";
 
 const tabs = [
   { id: "diagram",    label: "Architecture Diagram" },
-  { id: "simulation", label: "Live Simulation" },
+  { id: "simulation", label: "Live Simulation"      },
+  { id: "map",        label: "GIS Map View"         },
 ];
 
 export default function App() {
@@ -13,13 +15,11 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
-      {/* Header */}
       <header className="app-header">
         <h1>Echo-Guard IoT</h1>
         <p>Pipeline Vandalism Detection System — Maziv Technologies</p>
       </header>
 
-      {/* Tab Bar */}
       <nav className="tab-bar">
         {tabs.map(tab => (
           <button
@@ -32,10 +32,10 @@ export default function App() {
         ))}
       </nav>
 
-      {/* Content */}
       <main className="tab-content">
         {activeTab === "diagram"    && <EchoGuardDiagram />}
         {activeTab === "simulation" && <EchoGuardSimulation />}
+        {activeTab === "map"        && <EchoGuardMap />}
       </main>
     </div>
   );
