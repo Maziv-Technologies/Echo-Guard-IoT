@@ -275,7 +275,7 @@ export default function EchoGuardSimulation() {
         Echo-Guard IoT — Live Pipeline Simulation
       </h2>
       <p style={{ fontSize:13, color:"var(--color-text-secondary)", marginBottom:16 }}>
-        Real-time vandalism detection · Edge-AI · LoRaWAN mesh
+        Real-time Vandalism Detection · Edge-AI · LoRaWAN Mesh
       </p>
 
       <style>{`
