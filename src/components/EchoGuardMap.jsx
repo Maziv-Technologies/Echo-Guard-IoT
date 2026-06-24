@@ -102,7 +102,7 @@ export default function EchoGuardMap() {
     setLogs(prev => [...prev.slice(-100), { time: t, type, msg }]);
   }, []);
 
-  const propagateMesh = useCallback((triggerNodeId, threat, detectionStart) => {
+  const propagateMesh = useCallback((triggerNodeId, threat, detectionStart, confidence) => {
     const triggerIdx = PIPELINE_NODES.findIndex(n => n.id === triggerNodeId);
     const chain = [];
     for (let i = triggerIdx + 1; i < PIPELINE_NODES.length; i++) chain.push(PIPELINE_NODES[i].id);
@@ -135,7 +135,7 @@ export default function EchoGuardMap() {
     nodeLabel: triggerNode?.label,
     threatType: threat.type,
     threatLabel: threat.label,
-    confidence: threat.conf ? undefined : undefined, // placeholder, see note below
+    confidence: confidence,
     severity: "ALERT",
     responseMs: ms,
     notified: true,
@@ -175,7 +175,7 @@ export default function EchoGuardMap() {
   setNodeStates(prev => ({ ...prev, [nodeId]: { status: "alert", threat, confidence: conf } }));
   addLog("ALERT", `🚨 ${nodeId} — VANDALISM CONFIRMED! ${threat.icon} ${threat.label} @ ${conf.toFixed(1)}%`);
   setStats(prev => ({ ...prev, alerts: prev.alerts + 1 }));
-  propagateMesh(nodeId, threat, detectionStart);
+  propagateMesh(nodeId, threat, detectionStart, conf);
 } else {
   setNodeStates(prev => ({ ...prev, [nodeId]: { status: "idle", threat: null, confidence: null } }));
   addLog("CLEAR", `${nodeId} — below threshold (${conf.toFixed(1)}%) — dismissed`);
