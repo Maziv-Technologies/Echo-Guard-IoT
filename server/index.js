@@ -1,3 +1,5 @@
+/* global require, process, __dirname */
+
 const express = require("express");
 const cors = require("cors");
 const Database = require("better-sqlite3");
