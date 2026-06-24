@@ -1,6 +1,8 @@
+import { postAlert } from "../api/alerts";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
+
 
 // Fix Leaflet default marker icon broken by Webpack/Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -117,14 +119,27 @@ export default function EchoGuardMap() {
           setNodeStates(prev => ({ ...prev, [toId]: { status: "relaying", threat, confidence: null } }));
           addLog("RELAY", `${fromId} → ${toId} — packet forwarded`);
         } else {
-          setGwActive(true);
-          const ms = Date.now() - detectionStart;
-          addLog("ALERT", `✅ Gateway alert received — response: ${(ms / 1000).toFixed(1)}s`);
-          setStats(prev => {
-            const times = [...prev.responseTimes, ms];
-            return { ...prev, avgResponse: Math.round(times.reduce((a, b) => a + b, 0) / times.length), responseTimes: times };
-          });
-          setTimeout(() => addLog("NOTIFY", "📱 SMS + Telegram alert dispatched"), 500);
+  setGwActive(true);
+  const ms = Date.now() - detectionStart;
+  addLog("ALERT", `✅ Gateway alert received — response: ${(ms / 1000).toFixed(1)}s`);
+  setStats(prev => {
+    const times = [...prev.responseTimes, ms];
+    return { ...prev, avgResponse: Math.round(times.reduce((a, b) => a + b, 0) / times.length), responseTimes: times };
+  });
+  setTimeout(() => addLog("NOTIFY", "📱 SMS + Telegram alert dispatched"), 500);
+
+  // Persist confirmed alert
+  const triggerNode = PIPELINE_NODES.find(n => n.id === triggerNodeId);
+  postAlert({
+    nodeId: triggerNodeId,
+    nodeLabel: triggerNode?.label,
+    threatType: threat.type,
+    threatLabel: threat.label,
+    confidence: threat.conf ? undefined : undefined, // placeholder, see note below
+    severity: "ALERT",
+    responseMs: ms,
+    notified: true,
+  }).catch(err => console.error("Failed to save alert:", err));
           setTimeout(() => {
             setGwActive(false);
             setActivePacket(null);
@@ -157,16 +172,27 @@ export default function EchoGuardMap() {
       if (progress >= 1) {
         clearInterval(ramp);
         if (isVandalism) {
-          setNodeStates(prev => ({ ...prev, [nodeId]: { status: "alert", threat, confidence: conf } }));
-          addLog("ALERT", `🚨 ${nodeId} — VANDALISM CONFIRMED! ${threat.icon} ${threat.label} @ ${conf.toFixed(1)}%`);
-          setStats(prev => ({ ...prev, alerts: prev.alerts + 1 }));
-          propagateMesh(nodeId, threat, detectionStart);
-        } else {
-          setNodeStates(prev => ({ ...prev, [nodeId]: { status: "idle", threat: null, confidence: null } }));
-          addLog("CLEAR", `${nodeId} — below threshold (${conf.toFixed(1)}%) — dismissed`);
-          setStats(prev => ({ ...prev, ambient: prev.ambient + 1 }));
-        }
-      }
+  setNodeStates(prev => ({ ...prev, [nodeId]: { status: "alert", threat, confidence: conf } }));
+  addLog("ALERT", `🚨 ${nodeId} — VANDALISM CONFIRMED! ${threat.icon} ${threat.label} @ ${conf.toFixed(1)}%`);
+  setStats(prev => ({ ...prev, alerts: prev.alerts + 1 }));
+  propagateMesh(nodeId, threat, detectionStart);
+} else {
+  setNodeStates(prev => ({ ...prev, [nodeId]: { status: "idle", threat: null, confidence: null } }));
+  addLog("CLEAR", `${nodeId} — below threshold (${conf.toFixed(1)}%) — dismissed`);
+  setStats(prev => ({ ...prev, ambient: prev.ambient + 1 }));
+
+  // Persist ambient event
+  postAlert({
+    nodeId,
+    nodeLabel: node.label,
+    threatType: threat.type,
+    threatLabel: threat.label,
+    confidence: conf,
+    severity: "AMBIENT",
+    responseMs: null,
+    notified: false,
+  }).catch(err => console.error("Failed to save ambient event:", err));
+}      }
     }, 110);
   }, [addLog, propagateMesh]);
 
