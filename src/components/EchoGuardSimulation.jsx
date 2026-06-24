@@ -1,4 +1,3 @@
-// ── Step 6.1: postAlert import added ──────────────────────────────────────────
 import { postAlert } from "../api/alerts";
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -159,22 +158,22 @@ function AlertLog({ logs }) {
   );
 }
 
-export default function EchoGuardSimulation() {
+export default function EchoGuardSimulation({ settings = {} }) {
   const [nodeStates, setNodeStates] = useState(
     () => Object.fromEntries(
       PIPELINE_NODES.map(n => [n.id, { status: "idle", threat: null, confidence: null, pulse: false }])
     )
   );
-  const [gwActive,    setGwActive]    = useState(false);
-  const [logs,        setLogs]        = useState([]);
-  const [stats,       setStats]       = useState({ detected: 0, ambient: 0, alerts: 0, avgResponse: 0, responseTimes: [] });
-  const [running,     setRunning]     = useState(true);
-  const [meshPacket,  setMeshPacket]  = useState(null);
+  const [gwActive,   setGwActive]   = useState(false);
+  const [logs,       setLogs]       = useState([]);
+  const [stats,      setStats]      = useState({ detected: 0, ambient: 0, alerts: 0, avgResponse: 0, responseTimes: [] });
+  const [running,    setRunning]    = useState(true);
+  const [meshPacket, setMeshPacket] = useState(null);
   const tickRef     = useRef(0);
   const timeoutsRef = useRef([]);
 
   const addLog = useCallback((type, msg) => {
-    const now = new Date();
+    const now  = new Date();
     const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
     setLogs(prev => [...prev.slice(-80), { time, type, msg }]);
   }, []);
@@ -194,12 +193,11 @@ export default function EchoGuardSimulation() {
     timeoutsRef.current = [];
   }, []);
 
-  // ── Step 6.2: `confidence` added as 4th parameter ─────────────────────────
   const propagateMesh = useCallback((triggerNodeId, threat, detectionStart, confidence) => {
     const triggerIdx = PIPELINE_NODES.findIndex(n => n.id === triggerNodeId);
     if (triggerIdx === -1) return;
 
-    const chain = [];
+    const chain      = [];
     for (let i = triggerIdx + 1; i < PIPELINE_NODES.length; i++) chain.push(PIPELINE_NODES[i].id);
     chain.push("GW");
 
@@ -207,6 +205,8 @@ export default function EchoGuardSimulation() {
 
     chain.forEach((toId, i) => {
       const fromId = relayFrom[i];
+
+      // ── 4e: mesh hop delay from settings ──────────────────────────────────
       scheduleTimeout(() => {
         setMeshPacket({ from: fromId, to: toId });
 
@@ -230,26 +230,31 @@ export default function EchoGuardSimulation() {
             };
           });
 
+          // ── 4h: only log channels that are enabled in settings ───────────
           scheduleTimeout(() => {
-            addLog("NOTIFY", "📱 SMS + Telegram alert dispatched to security team");
+            const notifyParts = [
+              (settings.smsEnabled      ?? true) && "SMS",
+              (settings.telegramEnabled ?? true) && "Telegram",
+            ].filter(Boolean).join(" + ");
+            if (notifyParts) addLog("NOTIFY", `📱 ${notifyParts} alert dispatched to security team`);
           }, 500);
 
-          // ── Step 6.5: persist confirmed vandalism alert ──────────────────
-          // BUG FIX: was `threat.conf ? undefined : undefined` — now uses the
-          // `confidence` value correctly passed from triggerThreat via propagateMesh
-          const triggerNode = PIPELINE_NODES.find(n => n.id === triggerNodeId);
-          postAlert({
-            nodeId:      triggerNodeId,
-            nodeLabel:   triggerNode?.label ?? triggerNodeId,
-            threatType:  threat.type,
-            threatLabel: threat.label,
-            confidence,                // ← fixed: real value now saved
-            severity:    "ALERT",
-            responseMs:  ms,
-            notified:    true,
-          }).catch(err => console.error("Failed to save confirmed alert:", err));
+          // ── 4g: only persist if persistEnabled is true ───────────────────
+          if (settings.persistEnabled ?? true) {
+            const triggerNode = PIPELINE_NODES.find(n => n.id === triggerNodeId);
+            postAlert({
+              nodeId:      triggerNodeId,
+              nodeLabel:   triggerNode?.label ?? triggerNodeId,
+              threatType:  threat.type,
+              threatLabel: threat.label,
+              confidence,
+              severity:    "ALERT",
+              responseMs:  ms,
+              notified:    true,
+            }).catch(err => console.error("Failed to save confirmed alert:", err));
+          }
 
-          // Reset all nodes after 5 s
+          // ── 4f: reset delay from settings ────────────────────────────────
           scheduleTimeout(() => {
             setGwActive(false);
             setMeshPacket(null);
@@ -260,20 +265,20 @@ export default function EchoGuardSimulation() {
               }));
             });
             addLog("CLEAR", "System reset — all nodes back to monitoring");
-          }, 5000);
+          }, settings.resetDelay ?? 5000);          // ← 4f applied here
         }
-      }, 400 * (i + 1));
+      }, (settings.meshHopDelay ?? 400) * (i + 1)); // ← 4e applied here
     });
-  }, [addLog, scheduleTimeout]);
+  }, [addLog, scheduleTimeout, settings]);
 
   const triggerThreat = useCallback((nodeId) => {
-    const threat = THREAT_TYPES[Math.floor(Math.random() * THREAT_TYPES.length)];
-    const conf   = threat.conf();
-    const isVandalism    = conf >= 90;
+    const threat         = THREAT_TYPES[Math.floor(Math.random() * THREAT_TYPES.length)];
+    const conf           = threat.conf();
     const detectionStart = Date.now();
+    const node           = PIPELINE_NODES.find(n => n.id === nodeId);
 
-    // ── Step 6.3: look up the node object so we have its label ────────────
-    const node = PIPELINE_NODES.find(n => n.id === nodeId);
+    // ── 4a: confidence threshold from settings ────────────────────────────
+    const isVandalism = conf >= (settings.confidenceThreshold ?? 90);
 
     setNodeStates(prev => ({
       ...prev,
@@ -300,8 +305,6 @@ export default function EchoGuardSimulation() {
           }));
           addLog("ALERT", `🚨 ${nodeId} — VANDALISM CONFIRMED! ${threat.icon} ${threat.label} @ ${conf.toFixed(1)}% conf`);
           setStats(prev => ({ ...prev, alerts: prev.alerts + 1 }));
-
-          // ── Step 6.3: pass conf as the 4th argument ────────────────────
           propagateMesh(nodeId, threat, detectionStart, conf);
 
         } else {
@@ -312,23 +315,23 @@ export default function EchoGuardSimulation() {
           addLog("CLEAR", `${nodeId} — ${threat.label} below threshold (${conf.toFixed(1)}%) — ignored`);
           setStats(prev => ({ ...prev, ambient: prev.ambient + 1 }));
 
-          // ── Step 6.4: persist ambient / dismissed event ────────────────
-          // BUG FIX: was `node.label` where `node` was undefined in scope;
-          // now correctly uses the node looked up above
-          postAlert({
-            nodeId,
-            nodeLabel:   node?.label ?? nodeId,
-            threatType:  threat.type,
-            threatLabel: threat.label,
-            confidence:  conf,
-            severity:    "AMBIENT",
-            responseMs:  null,
-            notified:    false,
-          }).catch(err => console.error("Failed to save ambient event:", err));
+          // ── 4g: only persist ambient event if persistEnabled is true ─────
+          if (settings.persistEnabled ?? true) {
+            postAlert({
+              nodeId,
+              nodeLabel:   node?.label ?? nodeId,
+              threatType:  threat.type,
+              threatLabel: threat.label,
+              confidence:  conf,
+              severity:    "AMBIENT",
+              responseMs:  null,
+              notified:    false,
+            }).catch(err => console.error("Failed to save ambient event:", err));
+          }
         }
       }
     }, 120);
-  }, [addLog, propagateMesh]);
+  }, [addLog, propagateMesh, settings]);
 
   const triggerAmbient = useCallback(() => {
     const name   = AMBIENT[Math.floor(Math.random() * AMBIENT.length)];
@@ -348,18 +351,25 @@ export default function EchoGuardSimulation() {
     }, 2000);
   }, [addLog, scheduleTimeout]);
 
+  // ── 4b: tick interval + autoSimulate from settings ────────────────────────
+  // ── 4c: threat probability from settings ──────────────────────────────────
+  // ── 4d: ambient probability from settings ─────────────────────────────────
   useInterval(() => {
     if (!running) return;
     tickRef.current++;
-    const r = Math.random();
-    if (r < 0.18) {
-      const node   = PIPELINE_NODES[Math.floor(Math.random() * PIPELINE_NODES.length)];
+    const r               = Math.random();
+    const threatProb      = (settings.threatProbability  ?? 18) / 100;
+    const ambientProb     = (settings.ambientProbability ?? 14) / 100;
+
+    if (r < threatProb) {
+      const node    = PIPELINE_NODES[Math.floor(Math.random() * PIPELINE_NODES.length)];
       const allIdle = Object.values(nodeStates).every(s => s.status === "idle");
       if (allIdle) triggerThreat(node.id);
-    } else if (r < 0.32) {
+    } else if (r < threatProb + ambientProb) {
       triggerAmbient();
     }
-  }, running ? 3500 : null);
+  // 4b: null when paused OR autoSimulate is off; tick interval from settings
+  }, running && (settings.autoSimulate ?? true) ? (settings.tickInterval ?? 3500) : null);
 
   const manualTrigger = (nodeId) => {
     const allIdle = Object.values(nodeStates).every(s => s.status === "idle");
@@ -386,10 +396,10 @@ export default function EchoGuardSimulation() {
       {/* Metric cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
         {[
-          { label: "Events detected",  val: stats.detected },
-          { label: "Alerts raised",    val: stats.alerts,   warn: stats.alerts > 0 },
-          { label: "Ambient dismissed",val: stats.ambient },
-          { label: "Avg response",     val: stats.avgResponse ? `${(stats.avgResponse / 1000).toFixed(1)}s` : "—" },
+          { label: "Events detected",   val: stats.detected },
+          { label: "Alerts raised",     val: stats.alerts,  warn: stats.alerts > 0 },
+          { label: "Ambient dismissed", val: stats.ambient },
+          { label: "Avg response",      val: stats.avgResponse ? `${(stats.avgResponse / 1000).toFixed(1)}s` : "—" },
         ].map((c, i) => (
           <div key={i} style={{
             background: "var(--color-background-secondary)", borderRadius: 8,
@@ -400,6 +410,27 @@ export default function EchoGuardSimulation() {
               {c.val}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* Active settings summary pill */}
+      <div style={{
+        display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14, fontSize: 11,
+        color: "var(--color-text-tertiary)",
+      }}>
+        {[
+          `Threshold: ${settings.confidenceThreshold ?? 90}%`,
+          `Tick: ${((settings.tickInterval ?? 3500) / 1000).toFixed(1)}s`,
+          `Threat prob: ${settings.threatProbability ?? 18}%`,
+          `Hop delay: ${settings.meshHopDelay ?? 400}ms`,
+          (settings.persistEnabled ?? true) ? "💾 Persisting" : "💾 Not persisting",
+          (settings.autoSimulate   ?? true) ? "🤖 Auto-sim ON" : "🤖 Auto-sim OFF",
+        ].map((pill, i) => (
+          <span key={i} style={{
+            padding: "2px 8px", borderRadius: 20,
+            background: "var(--color-background-secondary)",
+            border: "0.5px solid var(--color-border-tertiary)",
+          }}>{pill}</span>
         ))}
       </div>
 
@@ -418,9 +449,9 @@ export default function EchoGuardSimulation() {
 
           {/* Mesh connection lines */}
           {PIPELINE_NODES.map((n, i) => {
-            const next  = i < PIPELINE_NODES.length - 1 ? PIPELINE_NODES[i + 1] : null;
-            const toGw  = i === PIPELINE_NODES.length - 1;
-            const endX  = toGw ? GATEWAY.x + 20 : next?.x + 20;
+            const next     = i < PIPELINE_NODES.length - 1 ? PIPELINE_NODES[i + 1] : null;
+            const toGw     = i === PIPELINE_NODES.length - 1;
+            const endX     = toGw ? GATEWAY.x + 20 : next?.x + 20;
             const isActive = meshPacket &&
               meshPacket.from === n.id &&
               meshPacket.to   === (toGw ? "GW" : next?.id);
