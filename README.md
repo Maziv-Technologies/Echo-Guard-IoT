@@ -531,7 +531,7 @@ For licensing inquiries, please contact: [contact information]
 
 ### Reporting Security Issues
 
-If you discover a security vulnerability, please email [security contact] instead of using the public issue tracker.
+If you discover a security vulnerability, please email [info@mazivtechnologies.com] instead of using the public issue tracker.
 
 ---
 
