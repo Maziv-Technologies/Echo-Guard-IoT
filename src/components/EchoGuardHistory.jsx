@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchAlerts, fetchStats, clearAlerts, deleteAlert } from "../api/alerts";
-import { generateIncidentReport } from "../utils/generateReports"; // ← 3a: import added
+import { generateIncidentReport } from "../utils/generateReport"; // ← 3a: import added
 
 // ── Severity badge ─────────────────────────────────────────────────────────────
 function Badge({ severity }) {
