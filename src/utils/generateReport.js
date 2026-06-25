@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // ── Colour palette (matches the UI) ───────────────────────────────────────────
@@ -18,14 +18,13 @@ const C = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const rgb  = (arr) => ({ r: arr[0], g: arr[1], b: arr[2] });
 const setF = (doc, arr) => doc.setFillColor(...arr);
 const setT = (doc, arr) => doc.setTextColor(...arr);
 const setD = (doc, arr) => doc.setDrawColor(...arr);
 
 function fmt(dateStr) {
   return new Date(dateStr).toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
 }
@@ -134,7 +133,7 @@ function statGrid(doc, items, y) {
     setT(doc, C.light); doc.setFontSize(7).setFont("helvetica", "normal");
     doc.text(item.label.toUpperCase(), x + 6, y + 8);
 
-    setT(doc, item.warn ? rgb(C.red) : rgb(C.dark));
+    setT(doc, item.warn ? C.red : C.dark);
     doc.setFontSize(15).setFont("helvetica", "bold");
     doc.text(String(item.value ?? "—"), x + 6, y + 19);
 
@@ -264,7 +263,7 @@ export async function generateIncidentReport({ alerts, stats, settings }) {
   });
 
   // ── Page 4+: Alert Log Table ───────────────────────────────────────────────
-  doc.addPage();
+  doc.addPage("a4", "landscape");
   drawPageHeader(doc, "Alert Log");
   y = 28;
   y = sectionHeading(doc, "Full Alert Log", y);
@@ -296,7 +295,8 @@ export async function generateIncidentReport({ alerts, stats, settings }) {
     head:   [["Timestamp", "Node", "Threat", "Confidence", "Severity", "Response", "Notified"]],
     body:   tableBody.length ? tableBody : [["No records found", "", "", "", "", "", ""]],
     theme:  "plain",
-    styles: { fontSize: 8, cellPadding: 3, textColor: C.dark, overflow: "linebreak" },
+    tableWidth: "wrap",
+    styles: { fontSize: 8, cellPadding: 2, textColor: C.dark, overflow: "linebreak" },
     headStyles: {
       fillColor: C.dark,
       textColor: C.white,
@@ -304,13 +304,13 @@ export async function generateIncidentReport({ alerts, stats, settings }) {
       fontSize:  8,
     },
     columnStyles: {
-      0: { cellWidth: 38 },
-      1: { cellWidth: 14 },
-      2: { cellWidth: 32 },
-      3: { cellWidth: 22 },
-      4: { cellWidth: 22 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 18 },
+      0: { cellWidth: 46 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 30 },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 28 },
+      6: { cellWidth: 24 },
     },
     alternateRowStyles: { fillColor: C.pageBg },
     didParseCell(data) {
