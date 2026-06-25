@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";                      // ← useCallback removed
+import { useState, useEffect } from "react";
 import { fetchAlerts, fetchStats, clearAlerts, deleteAlert } from "../api/alerts";
+import { generateIncidentReport } from "../utils/generateReports"; // ← 3a: import added
 
 // ── Severity badge ─────────────────────────────────────────────────────────────
 function Badge({ severity }) {
@@ -138,6 +139,34 @@ function ToggleRow({ label, description, value, onChange }) {
   );
 }
 
+// ── 3d (bonus): Reusable Export PDF button ────────────────────────────────────
+// Extracted as a shared component so History and Analytics toolbars
+// don't duplicate the button's inline styles.
+function ExportButton({ onClick, exporting }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={exporting}
+      style={{
+        fontSize:     12,
+        background:   exporting ? "var(--color-background-secondary)" : "#1a1a1a",
+        color:        exporting ? "var(--color-text-tertiary)" : "white",
+        border:       "none",
+        borderRadius: 6,
+        padding:      "5px 14px",
+        cursor:       exporting ? "not-allowed" : "pointer",
+        display:      "flex",
+        alignItems:   "center",
+        gap:          6,
+        opacity:      exporting ? 0.6 : 1,
+        transition:   "all 0.2s",
+      }}
+    >
+      {exporting ? "⏳ Generating..." : "⬇ Export PDF"}
+    </button>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function EchoGuardHistory({ settings, onSettingsChange }) {
   const [activeSection,  setActiveSection]  = useState("history");
@@ -149,12 +178,10 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
   const [total,          setTotal]          = useState(0);
   const [filterSeverity, setFilterSeverity] = useState("ALL");
   const [confirmClear,   setConfirmClear]   = useState(false);
+  const [exporting,      setExporting]      = useState(false); // ← 3b: export loading state
+
   const PAGE_SIZE = 20;
 
-  // ── loadData: plain async function — no useCallback needed ────────────────
-  // useCallback was imported and wrapping this function but served no purpose
-  // here because loadData is only called from useEffect and click handlers,
-  // not passed as a prop to child components where referential stability matters.
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -167,9 +194,8 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
       setTotal(alertsRes.total);
       setStats(statsRes);
     } catch (err) {
-        console.error("Failed to load EchoGuard history data", err);
+      console.error("Failed to load EchoGuard history data", err);
       setError("Could not connect to the backend. Make sure the server is running on port 4000.");
-      
     } finally {
       setLoading(false);
     }
@@ -177,8 +203,8 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
 
   useEffect(() => {
     if (activeSection === "history" || activeSection === "analytics") loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, page]);   // page is the only reactive dep that should re-trigger a fetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, page]);
 
   const handleDelete = async (id) => {
     await deleteAlert(id);
@@ -189,6 +215,28 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
     await clearAlerts();
     setConfirmClear(false);
     loadData();
+  };
+
+  // ── 3c: PDF export handler ────────────────────────────────────────────────
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      // Fetch ALL records (bypass page limit) so the report is complete
+      const [allAlertsRes, statsRes] = await Promise.all([
+        fetchAlerts(1000, 0),
+        fetchStats(),
+      ]);
+      await generateIncidentReport({
+        alerts:   allAlertsRes.data,
+        stats:    statsRes,
+        settings,
+      });
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      alert("PDF export failed. Check the console for details.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const filteredAlerts = filterSeverity === "ALL"
@@ -250,8 +298,13 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
                   }}>{f}</button>
                 ))}
               </div>
+
+              {/* ── 3d: History toolbar — Refresh · Export PDF · Clear all ── */}
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={loadData} style={{ fontSize: 12 }}>↺ Refresh</button>
+
+                <ExportButton onClick={handleExportPDF} exporting={exporting} />
+
                 {!confirmClear ? (
                   <button onClick={() => setConfirmClear(true)}
                     style={{ fontSize: 12, background: "#FCEBEB", color: "#A32D2D",
@@ -464,8 +517,10 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
                   </div>
                 </div>
 
-                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                {/* ── 3d: Analytics footer — Refresh + Export PDF ─────────── */}
+                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end", gap: 8 }}>
                   <button onClick={loadData} style={{ fontSize: 12 }}>↺ Refresh analytics</button>
+                  <ExportButton onClick={handleExportPDF} exporting={exporting} />
                 </div>
               </>
             )}
