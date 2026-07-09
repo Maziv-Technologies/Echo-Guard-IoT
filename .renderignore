@@ -1,0 +1,12 @@
+.git
+.gitignore
+node_modules
+npm-debug.log
+dist
+.vscode
+.DS_Store
+*.log
+.env.local
+echoguard-report-*.pdf
+server/dist
+.agents
