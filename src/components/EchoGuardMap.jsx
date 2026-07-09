@@ -92,8 +92,15 @@ export default function EchoGuardMap() {
   const [stats,      setStats]      = useState({ detected: 0, alerts: 0, ambient: 0, avgResponse: 0, responseTimes: [] });
   const [running,    setRunning]    = useState(true);
   const [flyTo,      setFlyTo]      = useState(null);
-  const [activePacket, setActivePacket] = useState(null); // {fromIdx, toIdx}
+  const [activePacket, setActivePacket] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const logEndRef = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
 
@@ -228,10 +235,10 @@ export default function EchoGuardMap() {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "1.5rem 1rem", background: "var(--color-background-tertiary)", minHeight: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: isMobile ? "12px 10px" : "16px 14px", background: "var(--color-background-tertiary)", minHeight: "100vh" }}>
 
       {/* Metric cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 8 }}>
         {[
           { label: "Events detected",  val: stats.detected },
           { label: "Alerts raised",    val: stats.alerts,   warn: stats.alerts > 0 },
@@ -239,19 +246,19 @@ export default function EchoGuardMap() {
           { label: "Avg response",     val: stats.avgResponse ? `${(stats.avgResponse / 1000).toFixed(1)}s` : "—" },
         ].map((c, i) => (
           <div key={i} style={{ background: "var(--color-background-primary)", borderRadius: 8,
-            border: "0.5px solid var(--color-border-tertiary)", padding: "10px 14px" }}>
-            <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 500, color: c.warn ? "#E24B4A" : "var(--color-text-primary)" }}>{c.val}</div>
+            border: "0.5px solid var(--color-border-tertiary)", padding: "8px 12px" }}>
+            <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginBottom: 4 }}>{c.label}</div>
+            <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 500, color: c.warn ? "#E24B4A" : "var(--color-text-primary)" }}>{c.val}</div>
           </div>
         ))}
       </div>
 
-      {/* Map + Log side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14, alignItems: "start" }}>
+      {/* Map + Log side by side (stacks on mobile) */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 300px", gap: 12, alignItems: "start" }}>
 
         {/* Map */}
-        <div style={{ borderRadius: 12, overflow: "hidden", border: "0.5px solid var(--color-border-tertiary)", height: 480 }}>
-          <MapContainer center={center} zoom={8} style={{ height: "100%", width: "100%" }} scrollWheelZoom={true}>
+        <div style={{ borderRadius: 12, overflow: "hidden", border: "0.5px solid var(--color-border-tertiary)", height: isMobile ? 350 : 480 }}>
+          <MapContainer center={[5.6, 6.8]} zoom={8} style={{ height: "100%", width: "100%" }} scrollWheelZoom={!isMobile}>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -259,7 +266,7 @@ export default function EchoGuardMap() {
             <FlyTo coords={flyTo} />
 
             {/* Pipeline polyline */}
-            <Polyline positions={pipelineCoords} color="#888780" weight={4} opacity={0.6} dashArray="8 4" />
+            <Polyline positions={PIPELINE_NODES.map(n => [n.lat, n.lng])} color="#888780" weight={3} opacity={0.6} dashArray="8 4" />
 
             {/* Active mesh packet highlight */}
             {activePacket && activePacket.toIdx >= 0 && (
@@ -270,7 +277,7 @@ export default function EchoGuardMap() {
                     ? [PIPELINE_NODES[activePacket.toIdx].lat, PIPELINE_NODES[activePacket.toIdx].lng]
                     : [GATEWAY.lat, GATEWAY.lng],
                 ]}
-                color="#378ADD" weight={4} opacity={0.9}
+                color="#378ADD" weight={3} opacity={0.9}
               />
             )}
 
@@ -320,20 +327,20 @@ export default function EchoGuardMap() {
 
         {/* Alert log */}
         <div style={{ background: "var(--color-background-primary)", borderRadius: 12,
-          border: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", height: 480 }}>
-          <div style={{ padding: "12px 14px 8px", borderBottom: "0.5px solid var(--color-border-tertiary)",
-            fontSize: 13, fontWeight: 500, color: "var(--color-text-secondary)" }}>
+          border: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", height: isMobile ? 300 : 480 }}>
+          <div style={{ padding: "10px 12px 8px", borderBottom: "0.5px solid var(--color-border-tertiary)",
+            fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)" }}>
             Alert log
           </div>
-          <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", "-webkit-overflow-scrolling": "touch" }}>
             {logs.length === 0 && (
-              <div style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Monitoring... no events yet.</div>
+              <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>Monitoring... no events yet.</div>
             )}
             {logs.map((l, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7, fontSize: 12, alignItems: "flex-start" }}>
-                <span style={{ color: "var(--color-text-tertiary)", whiteSpace: "nowrap", paddingTop: 1 }}>{l.time}</span>
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11, alignItems: "flex-start" }}>
+                <span style={{ color: "var(--color-text-tertiary)", whiteSpace: "nowrap", paddingTop: 1, fontSize: 9 }}>{l.time}</span>
                 <span style={logTypeStyle(l.type)}>{l.type}</span>
-                <span style={{ color: "var(--color-text-primary)", lineHeight: 1.4 }}>{l.msg}</span>
+                <span style={{ color: "var(--color-text-primary)", lineHeight: 1.3, wordBreak: "break-word" }}>{l.msg}</span>
               </div>
             ))}
             <div ref={logEndRef} />
@@ -342,33 +349,33 @@ export default function EchoGuardMap() {
       </div>
 
       {/* Node status strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8 }}>
         {PIPELINE_NODES.map(n => {
           const s = nodeStates[n.id];
           const col = STATUS_COLORS[s.status];
           return (
             <div key={n.id} style={{ background: "var(--color-background-primary)", borderRadius: 8,
-              border: `1.5px solid ${col}`, padding: "10px 12px", cursor: "pointer" }}
+              border: `1.5px solid ${col}`, padding: "8px 10px", cursor: "pointer" }}
               onClick={() => {
                 const allIdle = Object.values(nodeStates).every(st => st.status === "idle");
                 if (allIdle) triggerThreat(n.id);
               }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)" }}>{n.id}</span>
-                <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 20,
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-primary)" }}>{n.id}</span>
+                <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 20,
                   background: col + "22", color: col, fontWeight: 500 }}>
                   {s.status.toUpperCase()}
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 4 }}>
-                {n.label.split("—")[1]?.trim()}
+              <div style={{ fontSize: 9, color: "var(--color-text-secondary)", marginBottom: 3 }}>
+                {n.label.split("—")[1]?.trim().substring(0, 20)}...
               </div>
               {s.confidence && (
                 <div>
-                  <div style={{ background: "var(--color-border-tertiary)", borderRadius: 4, height: 4, overflow: "hidden" }}>
+                  <div style={{ background: "var(--color-border-tertiary)", borderRadius: 4, height: 3, overflow: "hidden" }}>
                     <div style={{ width: `${s.confidence}%`, height: "100%", background: col, borderRadius: 4, transition: "width 0.3s" }} />
                   </div>
-                  <div style={{ fontSize: 10, color: col, marginTop: 2 }}>{s.confidence.toFixed(1)}%</div>
+                  <div style={{ fontSize: 8, color: col, marginTop: 1 }}>{s.confidence.toFixed(1)}%</div>
                 </div>
               )}
             </div>
@@ -377,22 +384,32 @@ export default function EchoGuardMap() {
       </div>
 
       {/* Controls */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={() => setRunning(r => !r)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {running ? "⏸ Pause simulation" : "▶ Resume simulation"}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between" }}>
+        <button onClick={() => setRunning(r => !r)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "6px 12px" }}>
+          {running ? "⏸ Pause" : "▶ Resume"}
         </button>
-        {PIPELINE_NODES.map(n => (
+        {!isMobile && PIPELINE_NODES.map(n => (
           <button key={n.id} onClick={() => {
             const allIdle = Object.values(nodeStates).every(s => s.status === "idle");
             if (allIdle) triggerThreat(n.id);
-          }} style={{ fontSize: 12 }}>
+          }} style={{ fontSize: 11, padding: "5px 10px" }}>
             Trigger {n.id}
           </button>
         ))}
+        {isMobile && (
+          <select onChange={(e) => {
+            const allIdle = Object.values(nodeStates).every(s => s.status === "idle");
+            if (allIdle && e.target.value) triggerThreat(e.target.value);
+            e.target.value = "";
+          }} style={{ fontSize: 11, padding: "5px 8px", borderRadius: 4 }}>
+            <option value="">Trigger node...</option>
+            {PIPELINE_NODES.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}
+          </select>
+        )}
         <button onClick={() => {
           setLogs([]);
           setStats({ detected: 0, alerts: 0, ambient: 0, avgResponse: 0, responseTimes: [] });
-        }} style={{ fontSize: 12, marginLeft: "auto" }}>
+        }} style={{ fontSize: 11, padding: "5px 10px" }}>
           ↺ Reset
         </button>
       </div>

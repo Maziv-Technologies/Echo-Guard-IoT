@@ -18,16 +18,17 @@ function Badge({ severity }) {
 
 // ── Stat card ──────────────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, warn }) {
+  const isMobile = window.innerWidth <= 768;
   return (
     <div style={{
       background: "var(--color-background-primary)", borderRadius: 10,
-      border: "0.5px solid var(--color-border-tertiary)", padding: "12px 16px",
+      border: "0.5px solid var(--color-border-tertiary)", padding: isMobile ? "10px 12px" : "12px 16px",
     }}>
-      <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 500, color: warn ? "#E24B4A" : "var(--color-text-primary)" }}>
+      <div style={{ fontSize: isMobile ? 10 : 11, color: "var(--color-text-secondary)", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 500, color: warn ? "#E24B4A" : "var(--color-text-primary)" }}>
         {value ?? "—"}
       </div>
-      {sub && <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: isMobile ? 10 : 11, color: "var(--color-text-tertiary)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -256,7 +257,7 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
 
       {/* Section tabs */}
       <div style={{ display: "flex", gap: 0, borderBottom: "0.5px solid var(--color-border-tertiary)",
-        background: "var(--color-background-primary)", padding: "0 1.5rem" }}>
+        background: "var(--color-background-primary)", padding: window.innerWidth <= 768 ? "0 10px" : "0 20px", overflowX: "auto", scrollBehavior: "smooth" }}>
         {[
           { id: "history",   label: "📋  Alert History" },
           { id: "analytics", label: "📊  Analytics"     },
@@ -264,29 +265,29 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
         ].map(s => (
           <button key={s.id} onClick={() => setActiveSection(s.id)} style={{
             background: "none", border: "none", cursor: "pointer",
-            padding: "14px 20px", fontSize: 13, fontWeight: 500,
+            padding: window.innerWidth <= 768 ? "12px 12px" : "14px 20px", fontSize: window.innerWidth <= 768 ? 12 : 13, fontWeight: 500,
             color: activeSection === s.id ? "#E24B4A" : "var(--color-text-secondary)",
             borderBottom: activeSection === s.id ? "2px solid #E24B4A" : "2px solid transparent",
-            marginBottom: -1, transition: "all 0.15s",
+            marginBottom: -1, transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0,
           }}>
             {s.label}
           </button>
         ))}
       </div>
 
-      <div style={{ padding: "1.5rem" }}>
+      <div style={{ padding: window.innerWidth <= 768 ? "12px 10px" : "20px 24px" }}>
 
         {/* ── HISTORY SECTION ───────────────────────────────────────────────── */}
         {activeSection === "history" && (
           <div>
             {/* Toolbar */}
             <div style={{ display: "flex", justifyContent: "space-between",
-              alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>Filter:</span>
+              alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", fontSize: window.innerWidth <= 768 ? 11 : 13 }}>
+                <span style={{ color: "var(--color-text-secondary)" }}>Filter:</span>
                 {["ALL", "ALERT", "AMBIENT"].map(f => (
                   <button key={f} onClick={() => setFilterSeverity(f)} style={{
-                    fontSize: 12, padding: "4px 12px", borderRadius: 20, border: "1px solid",
+                    fontSize: window.innerWidth <= 768 ? 11 : 12, padding: window.innerWidth <= 768 ? "3px 10px" : "4px 12px", borderRadius: 20, border: "1px solid",
                     cursor: "pointer",
                     background: filterSeverity === f
                       ? (f === "ALERT" ? "#E24B4A" : f === "AMBIENT" ? "#888780" : "#378ADD")
@@ -300,24 +301,24 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
               </div>
 
               {/* ── 3d: History toolbar — Refresh · Export PDF · Clear all ── */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={loadData} style={{ fontSize: 12 }}>↺ Refresh</button>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button onClick={loadData} style={{ fontSize: window.innerWidth <= 768 ? 11 : 12, padding: window.innerWidth <= 768 ? "4px 8px" : "6px 12px" }}>↺ Refresh</button>
 
                 <ExportButton onClick={handleExportPDF} exporting={exporting} />
 
                 {!confirmClear ? (
                   <button onClick={() => setConfirmClear(true)}
-                    style={{ fontSize: 12, background: "#FCEBEB", color: "#A32D2D",
-                      border: "1px solid #E24B4A" }}>
+                    style={{ fontSize: window.innerWidth <= 768 ? 11 : 12, background: "#FCEBEB", color: "#A32D2D",
+                      border: "1px solid #E24B4A", padding: window.innerWidth <= 768 ? "4px 8px" : "6px 12px" }}>
                     🗑 Clear all
                   </button>
                 ) : (
                   <>
                     <button onClick={handleClearAll}
-                      style={{ fontSize: 12, background: "#E24B4A", color: "white", border: "none" }}>
+                      style={{ fontSize: window.innerWidth <= 768 ? 11 : 12, background: "#E24B4A", color: "white", border: "none", padding: window.innerWidth <= 768 ? "4px 8px" : "6px 12px" }}>
                       Confirm clear
                     </button>
-                    <button onClick={() => setConfirmClear(false)} style={{ fontSize: 12 }}>
+                    <button onClick={() => setConfirmClear(false)} style={{ fontSize: window.innerWidth <= 768 ? 11 : 12, padding: window.innerWidth <= 768 ? "4px 8px" : "6px 12px" }}>
                       Cancel
                     </button>
                   </>
@@ -328,15 +329,15 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
             {/* Error */}
             {error && (
               <div style={{ background: "#FCEBEB", border: "1px solid #E24B4A", borderRadius: 8,
-                padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#A32D2D" }}>
+                padding: window.innerWidth <= 768 ? "10px 12px" : "12px 16px", marginBottom: 12, fontSize: window.innerWidth <= 768 ? 12 : 13, color: "#A32D2D" }}>
                 ⚠️ {error}
               </div>
             )}
 
             {/* Loading */}
             {loading && (
-              <div style={{ textAlign: "center", padding: 40,
-                color: "var(--color-text-tertiary)", fontSize: 13 }}>
+              <div style={{ textAlign: "center", padding: 30,
+                color: "var(--color-text-tertiary)", fontSize: 12 }}>
                 Loading records...
               </div>
             )}
@@ -345,7 +346,7 @@ export default function EchoGuardHistory({ settings, onSettingsChange }) {
             {!loading && !error && (
               <>
                 <div style={{ background: "var(--color-background-primary)", borderRadius: 10,
-                  border: "0.5px solid var(--color-border-tertiary)", overflow: "hidden" }}>
+                  border: "0.5px solid var(--color-border-tertiary)", overflow: "auto" }}>
                   {/* Table header */}
                   <div style={{
                     display: "grid", gridTemplateColumns: "1fr 1fr 1.5fr 1fr 1fr 1fr 40px",

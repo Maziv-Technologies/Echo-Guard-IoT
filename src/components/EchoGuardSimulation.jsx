@@ -380,11 +380,11 @@ export default function EchoGuardSimulation({ settings = {} }) {
   const pipeY = 80, nodeY = 120;
 
   return (
-    <div style={{ padding: "1.5rem 1rem", fontFamily: "var(--font-sans)" }}>
-      <h2 style={{ fontSize: 18, fontWeight: 500, color: "var(--color-text-primary)", marginBottom: 4 }}>
+    <div style={{ padding: window.innerWidth <= 768 ? "12px 10px" : "16px 14px", fontFamily: "var(--font-sans)" }}>
+      <h2 style={{ fontSize: window.innerWidth <= 768 ? 16 : 18, fontWeight: 500, color: "var(--color-text-primary)", marginBottom: 4 }}>
         Echo-Guard IoT — Live Pipeline Simulation
       </h2>
-      <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 16 }}>
+      <p style={{ fontSize: window.innerWidth <= 768 ? 12 : 13, color: "var(--color-text-secondary)", marginBottom: 12 }}>
         Real-time Vandalism Detection · Edge-AI · LoRaWAN Mesh
       </p>
 
@@ -394,7 +394,7 @@ export default function EchoGuardSimulation({ settings = {} }) {
       `}</style>
 
       {/* Metric cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: window.innerWidth <= 768 ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
         {[
           { label: "Events detected",   val: stats.detected },
           { label: "Alerts raised",     val: stats.alerts,  warn: stats.alerts > 0 },
@@ -403,10 +403,10 @@ export default function EchoGuardSimulation({ settings = {} }) {
         ].map((c, i) => (
           <div key={i} style={{
             background: "var(--color-background-secondary)", borderRadius: 8,
-            padding: "10px 12px", border: "0.5px solid var(--color-border-tertiary)",
+            padding: window.innerWidth <= 768 ? "8px 10px" : "10px 12px", border: "0.5px solid var(--color-border-tertiary)",
           }}>
-            <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 500, color: c.warn ? "#E24B4A" : "var(--color-text-primary)" }}>
+            <div style={{ fontSize: window.innerWidth <= 768 ? 10 : 11, color: "var(--color-text-secondary)", marginBottom: 3 }}>{c.label}</div>
+            <div style={{ fontSize: window.innerWidth <= 768 ? 18 : 22, fontWeight: 500, color: c.warn ? "#E24B4A" : "var(--color-text-primary)" }}>
               {c.val}
             </div>
           </div>
@@ -415,7 +415,7 @@ export default function EchoGuardSimulation({ settings = {} }) {
 
       {/* Active settings summary pill */}
       <div style={{
-        display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14, fontSize: 11,
+        display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, fontSize: window.innerWidth <= 768 ? 10 : 11,
         color: "var(--color-text-tertiary)",
       }}>
         {[
@@ -427,7 +427,7 @@ export default function EchoGuardSimulation({ settings = {} }) {
           (settings.autoSimulate   ?? true) ? "🤖 Auto-sim ON" : "🤖 Auto-sim OFF",
         ].map((pill, i) => (
           <span key={i} style={{
-            padding: "2px 8px", borderRadius: 20,
+            padding: "2px 6px", borderRadius: 20,
             background: "var(--color-background-secondary)",
             border: "0.5px solid var(--color-border-tertiary)",
           }}>{pill}</span>
@@ -437,12 +437,12 @@ export default function EchoGuardSimulation({ settings = {} }) {
       {/* Pipeline topology SVG */}
       <div style={{
         background: "var(--color-background-secondary)", borderRadius: 12,
-        border: "0.5px solid var(--color-border-tertiary)", padding: "12px 16px", marginBottom: 16,
+        border: "0.5px solid var(--color-border-tertiary)", padding: window.innerWidth <= 768 ? "10px 12px" : "12px 16px", marginBottom: 12,
       }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 8 }}>
+        <div style={{ fontSize: window.innerWidth <= 768 ? 11 : 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 6 }}>
           Pipeline topology — click a node to trigger manual test
         </div>
-        <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{ overflow: "visible" }}>
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{ overflow: "visible", maxHeight: window.innerWidth <= 768 ? 250 : 300 }}>
           {/* Pipe body */}
           <rect x={60} y={pipeY - 8} width={svgW - 80} height={16} rx={8} fill="#B4B2A9" opacity={0.35} />
           <rect x={60} y={pipeY - 4} width={svgW - 80} height={4}  rx={2} fill="white"   opacity={0.2}  />
