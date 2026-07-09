@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:4000/api";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
 export async function fetchAlerts(limit = 50, offset = 0) {
   const res = await fetch(`${API_BASE}/alerts?limit=${limit}&offset=${offset}`);

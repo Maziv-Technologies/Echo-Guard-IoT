@@ -7,12 +7,14 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, "echoguard.db");
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "..", "dist")));
 
 // ---- Database setup ----
-const db = new Database(path.join(__dirname, "echoguard.db"));
+const db = new Database(DB_PATH);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS alerts (
@@ -77,6 +79,10 @@ const threatBreakdown = db.prepare(`
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "echo-guard-api" });
 });
 
 // Create a new alert/event record
@@ -148,6 +154,10 @@ app.get("/api/stats", (req, res) => {
   });
 });
 
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+});
+
 app.listen(PORT, () => {
-  console.log(`Echo-Guard API running on http://localhost:${PORT}`);
+  console.log(`Echo-Guard API running on http://0.0.0.0:${PORT}`);
 });
